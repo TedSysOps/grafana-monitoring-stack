@@ -1,0 +1,36 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_LOKI",
+      "label": "Loki",
+      "type": "datasource",
+      "pluginId": "loki"
+    }
+  ],
+  "__note": "Export this dashboard from Grafana: Dashboard menu \u2192 Share \u2192 Export \u2192 Save to file. The full JSON with live datasource UIDs is available on the running Grafana instance.",
+  "title": "Homelab Log Overview",
+  "tags": [
+    "logs",
+    "loki",
+    "homelab"
+  ],
+  "panels_included": [
+    "Last Log Received \u2014 atlas",
+    "Last Log Received \u2014 unraid",
+    "Last Log Received \u2014 claudebox",
+    "Errors (24h) \u2014 atlas",
+    "Errors (24h) \u2014 unraid",
+    "Errors (24h) \u2014 claudebox",
+    "Error & Warning Rate \u2014 All Hosts",
+    "Top Noisy Containers (errors+warnings)",
+    "Container Error Rate Over Time (top 8)",
+    "atlas \u2014 Recent Errors & Warnings",
+    "unraid \u2014 Recent Errors & Warnings",
+    "claudebox \u2014 Recent Errors & Warnings",
+    "Container Errors \u2014 Live Feed"
+  ],
+  "panel_count": 13,
+  "datasources_required": [
+    "loki"
+  ]
+}

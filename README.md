@@ -28,7 +28,7 @@ This isn't about replacing understanding — I reviewed and modified everything.
 | **Telegraf** | Metrics collection agent (golift fork for SMART support) |
 | **Grafana** | Dashboards and visualization |
 | **Loki** | Log aggregation |
-| **Promtail** | Log shipping agent |
+| **Promtail** | Log shipping agent (migrating to Alloy) |
 
 All deployed via Docker Compose on TrueNAS (atlas). Telegraf runs with host networking and elevated capabilities to access SMART data, disk metrics, and hardware sensors.
 
