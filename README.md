@@ -84,7 +84,7 @@ Focused on system performance:
 
 **Loki + Promtail** collect system logs and Docker container logs. Promtail scrapes `/var/log` and the Docker socket for container log discovery.
 
-**Grafana** has the Netdata datasource plugin pre-installed (`GF_PLUGINS_PREINSTALL`) alongside InfluxDB and Loki datasources.
+**Grafana** has InfluxDB and Loki configured as datasources.
 
 **Networks:** Two Docker networks — `monitoring` (internal stack communication) and `proxy` (external, shared with SWAG reverse proxy).
 
