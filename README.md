@@ -50,6 +50,8 @@ Four hosts are instrumented, each running Telegraf for metrics and Promtail for 
 
 Ten dashboards are currently deployed, organized in a Homelab Monitoring folder in Grafana. Dashboard JSON files are in [`/dashboards`](./dashboards/).
 
+![Unraid System Dashboard](docs/screenshots/unraid-system-v3.png)
+
 | Dashboard | Panels | Highlights |
 |-----------|--------|------------|
 | Unraid System Dashboard V3 | 28 | CPU heatmap, UPS cost tracking, Docker resource usage, live syslog |
