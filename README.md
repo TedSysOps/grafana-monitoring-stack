@@ -1,128 +1,119 @@
-# Grafana Monitoring Stack
+# homelab-monitoring-stack
 
-A self-hosted observability platform for homelab infrastructure, built with Grafana, InfluxDB, Telegraf, Loki, and Promtail. This project demonstrates how I used AI tooling to accelerate deployment and dashboard development without needing deep expertise in Flux query language or LogQL up front.
-
-## The Problem
-
-I had monitoring running on individual hosts — different tools, different interfaces, no unified view. Useful for spot-checking, but useless for trend analysis or catching slow-moving problems like gradual disk fill or creeping temperatures. Logs were scattered with no central aggregation.
-
-The goal was a single pane of glass with persistent time-series data, log aggregation, actionable dashboards, and room to expand.
-
-## AI-Assisted Workflow
-
-I used Claude (via the official Grafana MCP server) to accelerate this build significantly. Rather than spending hours reading Flux query docs to get basic panels working, I could describe what I wanted in plain language and iterate from there.
-
-Concrete examples of what this enabled:
-- Generated working Flux queries for per-disk usage, I/O, and SMART temperature data
-- Built the array growth rate and "days until full" prediction panels through conversation
-- Configured the Grafana data source and dashboard JSON via MCP tools directly — no manual UI clicking for most of it
-- Iterated on panel layout and thresholds faster than I could have manually
-
-This isn't about replacing understanding — I reviewed and modified everything. It's about removing the friction of syntax and boilerplate so I could focus on what the monitoring should actually show.
-
-## Stack
-
-| Component | Role |
-|-----------|------|
-| **InfluxDB 2.7** | Time-series database for metrics |
-| **Telegraf** | Metrics collection agent (golift fork for SMART support) |
-| **Grafana** | Dashboards and visualization |
-| **Loki** | Log aggregation |
-| **Promtail** | Log shipping agent (migrating to Alloy) |
-
-All deployed via Docker Compose on TrueNAS (atlas). Telegraf runs with host networking and elevated capabilities to access SMART data, disk metrics, and hardware sensors.
-
-```
-TrueNAS (atlas)
-├── Telegraf ──────────────→ InfluxDB ──→ Grafana
-│   (metrics: disk, SMART,                  ↑
-│    CPU, net, UPS, docker)                 │
-└── Promtail ──────────────→ Loki ─────────┘
-    (logs: system, docker
-     container logs)
-```
-
-External access via SWAG reverse proxy (`proxy` network).
-
-## Dashboards
-
-### Unraid Array Monitoring (15 panels)
-
-Focused on storage health and capacity planning:
-
-- Array usage gauge with current percentage
-- Growth rate calculations (week / month / year)
-- Days until full prediction based on observed growth rate
-- Per-disk usage table (18 data disks)
-- Per-disk I/O table (read/write)
-- Drive temperature time-series graph (all drives)
-- Average drive temperature stat
-- Total array I/O
-- UPS status, battery charge, load, and runtime remaining
-- Estimated daily power cost
-
-### Homelab System Health (10 panels)
-
-Focused on system performance:
-
-- System uptime
-- CPU usage (gauge + time-series)
-- Memory usage (gauge + time-series)
-- Network traffic in/out (bidirectional graph)
-- System load average (1/5/15 min)
-- Cache disk usage
-- Parity check status
-
-## Key Configuration Notes
-
-**Telegraf** uses the `golift/telegraf` image which includes `smartmontools` for SMART data collection. Runs with host networking and `SYS_ADMIN` / `SYS_PTRACE` capabilities. Host filesystem mounted at `/hostfs`.
-
-**InfluxDB** setup:
-- Organization: `homelab`
-- Bucket: `unraid`
-- Flux query language (v2 — not InfluxQL)
-
-**Loki + Promtail** collect system logs and Docker container logs. Promtail scrapes `/var/log` and the Docker socket for container log discovery.
-
-**Grafana** has InfluxDB and Loki configured as datasources.
-
-**Networks:** Two Docker networks — `monitoring` (internal stack communication) and `proxy` (external, shared with SWAG reverse proxy).
-
-## Structure
-
-```
-grafana-monitoring-stack/
-├── compose/
-│   └── compose.yaml          # Full stack: InfluxDB, Grafana, Telegraf, Loki, Promtail
-├── telegraf/
-│   └── telegraf.conf         # Metrics collection config
-├── dashboards/
-│   ├── unraid.json           # Unraid Array Monitoring dashboard export
-│   └── system-health.json    # Homelab System Health dashboard export
-├── .env.example              # Credential template
-└── README.md
-```
-
-## Environment Variables
-
-Copy `.env.example` to `.env` and fill in before deploying:
-
-```env
-INFLUXDB_ADMIN_USER=
-INFLUXDB_ADMIN_PASSWORD=
-INFLUXDB_ORG=homelab
-INFLUXDB_BUCKET=unraid
-INFLUXDB_ADMIN_TOKEN=
-
-GRAFANA_ADMIN_USER=
-GRAFANA_ADMIN_PASSWORD=
-GRAFANA_ROOT_URL=
-```
-
-## Why This Stack
-
-I considered Prometheus + Grafana (more moving parts, pull-based model less suited to my setup) and Netdata standalone (less flexible for custom dashboards and long-term retention). InfluxDB fit better for a single-user homelab focused on trend analysis — simpler to operate, excellent Grafana integration, and Telegraf handles collection with minimal config. Adding Loki gave log aggregation without introducing another query language or UI.
+A production-grade observability stack for a multi-host homelab environment, built on open-source tooling and managed with AI-assisted workflows. This repo documents the architecture, configuration, and build process behind a monitoring setup covering bare-metal servers, NAS systems, Docker containers, and UPS infrastructure.
 
 ---
 
-*Deployed: February 2026 | Running on TrueNAS Scale*
+## Stack Overview
+
+| Component | Role |
+|-----------|------|
+| **Grafana** | Visualization and dashboards |
+| **InfluxDB** | Time-series metrics storage |
+| **Loki** | Log aggregation |
+| **Telegraf** | Metrics collection agent (per-host) |
+| **Promtail / Alloy** | Log shipping agents (per-host) |
+| **Netdata** | Real-time anomaly detection and ML-assisted alerting |
+
+The Grafana stack (Grafana, InfluxDB, Loki) runs as Docker containers on TrueNAS (Atlas). Telegraf runs on each monitored host and ships metrics to InfluxDB; Promtail/Alloy handles log collection and forwards to Loki. Netdata runs on Unraid for real-time visibility independent of the InfluxDB pipeline.
+
+---
+
+## Infrastructure Monitored
+
+Four hosts are instrumented, each running Telegraf for metrics and Promtail for log shipping:
+
+**TrueNAS (Atlas — monitoring host)**
+- Hosts the full Grafana stack: Grafana, InfluxDB, Loki (Docker)
+- ZFS pool health, ARC hit rate, capacity
+- Drive temperatures across all spindles
+- 10GbE and 1GbE network throughput
+
+**Unraid (primary compute host)**
+- Intel Xeon E5-2667 v2 (32 threads), 256GB RAM
+- Unraid OS 7.x with Docker and VM support
+- UPS monitoring (status, load, battery, power cost estimation)
+- Per-container CPU/memory tracking via Telegraf
+
+**Claudebox (Debian — AI workspace)**
+- GMKTec K11 Mini PC, Ryzen 9 8945HS, Debian 13
+- Claude Desktop host with MCP tooling
+- Designed to run bare-metal or as a Proxmox VM
+
+**Argus (Debian — monitoring/utility host)**
+- Low-power Pentium N3700 mini PC, Debian 13
+- Runs Gatus (uptime monitoring), Healthchecks, and supporting services
+
+---
+
+## Dashboards
+
+Ten dashboards are currently deployed, organized in a Homelab Monitoring folder in Grafana. Dashboard JSON files are in [`/dashboards`](./dashboards/).
+
+| Dashboard | Panels | Highlights |
+|-----------|--------|------------|
+| Unraid System Dashboard V3 | 28 | CPU heatmap, UPS cost tracking, Docker resource usage, live syslog |
+| Atlas - TrueNAS Monitoring | 13 | ZFS pool status, ARC hit rate, drive temps, 10GbE throughput |
+| Homelab Log Overview | 13 | Cross-host error rates, top noisy containers, live log feeds |
+| Unraid Drive Health (SMART) | — | Per-drive SMART data |
+| Unraid Array Usage | — | Array utilization over time |
+| Unraid System Health | — | High-level health overview |
+
+---
+
+## AI-Assisted Build Workflow
+
+This stack was built and is actively managed using Claude AI as an infrastructure operations tool — not just as a code assistant.
+
+The workflow involves Claude connecting directly to live infrastructure via MCP (Model Context Protocol) integrations:
+
+- **Grafana MCP** — Claude can read datasource metadata, inspect existing dashboards, and create or modify dashboards against the live Grafana API
+- **Netdata MCP** — Claude queries real-time metrics, anomaly detection results, and alert state across monitored nodes
+- **Desktop Commander MCP** — file system access, shell execution, and config management on the Claudebox host
+
+In practice this means Claude can query current CPU usage, cross-reference it against Grafana dashboard data, identify gaps in observability, and create or update dashboards to fill them — all within a single conversation. Dashboards in this repo were built through that workflow rather than through manual JSON editing or the Grafana UI.
+
+**Persistent context** is maintained across sessions via two memory systems running on Claudebox: Basic Memory (an Obsidian-compatible markdown knowledge base) and a graph-based knowledge MCP. Infrastructure decisions, configuration context, and accumulated operational knowledge persist between AI sessions rather than being re-established each time. This makes the AI workspace function as a long-term operations partner rather than a stateless assistant.
+
+**Documentation and configuration** produced through this workflow — infrastructure notes, runbooks, Telegraf configs, and project context — are version-controlled in a private GitHub repository. This repo is part of that same practice applied to a public-facing project.
+
+This isn't an AI-generated project in the "paste some code" sense. It's a working example of AI being integrated into an infrastructure operations workflow as a genuine tool.
+
+---
+
+## Repository Structure
+
+```
+homelab-monitoring-stack/
+├── README.md
+├── docs/
+│   ├── architecture.md       # component diagram, data flow, design decisions
+│   └── ai-workflow.md        # detailed writeup of the MCP-based build process
+├── dashboards/
+│   ├── README.md             # dashboard index and import instructions
+│   ├── unraid-system-v3.json
+│   ├── atlas-truenas.json
+│   ├── homelab-logs.json
+│   └── ...
+├── telegraf/
+│   └── README.md             # Telegraf config overview and key inputs used
+└── screenshots/
+```
+
+---
+
+## Skills Demonstrated
+
+- Docker-based service deployment and composition
+- Time-series data modeling (InfluxDB)
+- Log aggregation pipeline (syslog + container logs → Loki)
+- Grafana dashboard development (InfluxQL, LogQL queries)
+- ZFS and NAS monitoring
+- UPS integration and power cost tracking
+- AI/MCP workflow integration for infrastructure management
+
+---
+
+## Related
+
+- [msgraph-entra-toolkit](https://github.com/TedSysOps/msgraph-entra-toolkit) — PowerShell toolkit for Entra ID user lookup via Microsoft Graph API
