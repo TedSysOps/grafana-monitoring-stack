@@ -48,15 +48,23 @@ Four hosts are instrumented, each running Telegraf for metrics and Promtail for 
 
 ## Dashboards
 
-Ten dashboards are currently deployed, organized in a Homelab Monitoring folder in Grafana. Dashboard JSON files are in [`/dashboards`](./dashboards/).
+Thirteen dashboards are currently deployed across three folders in Grafana. Dashboard JSON files are in [`/dashboards`](./dashboards/).
 
 ![Unraid System Dashboard](docs/screenshots/unraid-system-v3.png)
+
+![Network Traffic Dashboard](docs/screenshots/network-traffic.png)
+
+![Atlas ZFS Dashboard](docs/screenshots/atlas-zfs.png)
 
 | Dashboard | Panels | Highlights |
 |-----------|--------|------------|
 | Unraid System Dashboard V3 | 28 | CPU heatmap, UPS cost tracking, Docker resource usage, live syslog |
 | Atlas - TrueNAS Monitoring | 13 | ZFS pool status, ARC hit rate, drive temps, 10GbE throughput |
+| Atlas — ZFS | — | ZFS ARC size/hit rate, pool read/write throughput |
+| Network Traffic | — | Per-host LAN throughput, 10G DAC link between Unraid and Atlas |
 | Homelab Log Overview | 13 | Cross-host error rates, top noisy containers, live log feeds |
+| Homelab Overview — Netdata | — | Multi-host real-time overview via Netdata |
+| Claudebox System Dashboard | — | AI workspace host metrics |
 | Unraid Drive Health (SMART) | — | Per-drive SMART data |
 | Unraid Array Usage | — | Array utilization over time |
 | Unraid System Health | — | High-level health overview |
