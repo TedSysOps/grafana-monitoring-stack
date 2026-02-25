@@ -70,6 +70,7 @@ This stack was built and is actively managed using Claude AI as an infrastructur
 The workflow involves Claude connecting directly to live infrastructure via MCP (Model Context Protocol) integrations:
 
 - **Grafana MCP** — Claude can read datasource metadata, inspect existing dashboards, and create or modify dashboards against the live Grafana API. With the Grafana Image Renderer plugin installed, Claude can also render live panel images directly during a session — making it possible to visually inspect a dashboard, spot a broken panel or layout issue, and fix it without leaving the conversation
+- **InfluxDB MCP** — Claude can write time-series data directly into InfluxDB buckets using line protocol, enabling AI-generated metrics, synthetic test data, and instrumentation of the AI workflow itself
 - **Netdata MCP** — Claude queries real-time metrics, anomaly detection results, and alert state across monitored nodes
 - **Desktop Commander MCP** — file system access, shell execution, and config management on the Claudebox host
 
